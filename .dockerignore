@@ -1,0 +1,18 @@
+.git
+.venv
+__pycache__
+*.pyc
+.DS_Store
+
+# Frontend build artifacts and deps (rebuilt in Docker)
+src_web/cable_analysis/node_modules
+src_web/cable_analysis/dist
+
+# Data is mounted as a volume, not baked in
+data/
+
+# Dev/notebook files not needed in image
+src/
+output/
+dl-util/
+*.ipynb

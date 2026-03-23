@@ -1,14 +1,17 @@
 [project]
-name = "single-stage-to-jupyter"
+name = "erf8-analysis"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "fastapi[standard]>=0.135.2",
     "ipykernel>=6.29.5",
     "matplotlib>=3.10.1",
     "numpy>=1.26.4",
     "pandas>=2.2.4",
+    "pyyaml>=6.0.3",
+    "snsphd>=0.2.5",
 ]
 
 [dependency-groups]

@@ -14,3 +14,9 @@ src/.ipynb_checkpoints/
 
 
 .DS_Store
+
+# Measurement data — transferred separately, volume-mounted in Docker
+data/
+
+# Frontend deps
+src_web/cable_analysis/node_modules/

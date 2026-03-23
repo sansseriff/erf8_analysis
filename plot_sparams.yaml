@@ -1,0 +1,23 @@
+# Default S-parameter plot configuration
+# Run with: uv run plot_sparams.py
+
+plots:
+  - file: data/CH1_CH2/Feed_6inch_Feed_C.csv
+    param: S21
+    label: "6in (S21)"
+
+  - file: data/CH1_CH2/Feed_6inch_Therm_20inch_Feed_C.csv
+    param: S21
+    label: "6in+Therm+20in (S21)"
+
+  - file: data/CH1_CH2/Feed_6inch_Therm_20inch_Therm_20inch_Feed_C.csv
+    param: S21
+    label: "6in+Therm+20in+Therm+20in (S21)"
+
+  - file: data/CH1_CH2/Feed_6inch_6inchFlip_20inch_Feed_C.csv
+    param: S21
+    label: "6in+6inFlip+20in (S21)"
+
+  - file: data/CH1_CH2/Feed_6inch_6inchFlip_20inch_6inchFlip_20inch_Feed_C.csv
+    param: S21
+    label: "6in+6inFlip+20in+6inFlip+20in (S21)"
