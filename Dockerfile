@@ -1,10 +1,10 @@
 # ---- Stage 1: build Svelte frontend ----
-FROM oven/bun:1 AS frontend
+FROM node:20-slim AS frontend
 WORKDIR /app
-COPY src_web/cable_analysis/package.json src_web/cable_analysis/bun.lock ./
-RUN bun install
+COPY src_web/cable_analysis/package.json ./
+RUN npm install
 COPY src_web/cable_analysis/ .
-RUN bun run build
+RUN npm run build
 
 
 # ---- Stage 2: Python backend ----
