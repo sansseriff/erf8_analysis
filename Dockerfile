@@ -2,7 +2,7 @@
 FROM oven/bun:1 AS frontend
 WORKDIR /app
 COPY src_web/cable_analysis/package.json src_web/cable_analysis/bun.lock ./
-RUN bun install --frozen-lockfile
+RUN bun install
 COPY src_web/cable_analysis/ .
 RUN bun run build
 
