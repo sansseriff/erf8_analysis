@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher } from "svelte";
 
   const dispatch = createEventDispatcher<{
     add: LineSpec;
@@ -7,34 +7,34 @@
   }>();
 
   // The locked plot type from parent (null = free, 'vna' | 'pulse' = locked)
-  let { lockedType }: { lockedType: 'vna' | 'pulse' | null } = $props();
+  let { lockedType }: { lockedType: "vna" | "pulse" | null } = $props();
 
   type LineSpec =
-    | { type: 'vna'; folder: string; file: string; sparam: string }
-    | { type: 'pulse'; subfolder: string; file: string; channel: string };
+    | { type: "vna"; folder: string; file: string; sparam: string }
+    | { type: "pulse"; subfolder: string; file: string; channel: string };
 
   const CHANNEL_OPTIONS = [
-    { value: 'C1', label: 'C1 — Raw Original' },
-    { value: 'C2', label: 'C2 — Raw Transmission' },
-    { value: 'C3', label: 'C3 — Raw Adjacent Transmission' },
-    { value: 'C4', label: 'C4 — Raw Adjacent Reflection' },
-    { value: 'C5', label: 'C5 — Avg Original' },
-    { value: 'C6', label: 'C6 — Avg Transmission' },
-    { value: 'C7', label: 'C7 — Avg Adjacent Transmission' },
-    { value: 'C8', label: 'C8 — Avg Adjacent Reflection' },
+    { value: "C1", label: "C1 — Raw Original" },
+    { value: "C2", label: "C2 — Raw Transmission" },
+    { value: "C3", label: "C3 — Raw Adjacent Transmission" },
+    { value: "C4", label: "C4 — Raw Adjacent Reflection" },
+    { value: "C5", label: "C5 — Avg Original" },
+    { value: "C6", label: "C6 — Avg Transmission" },
+    { value: "C7", label: "C7 — Avg Adjacent Transmission" },
+    { value: "C8", label: "C8 — Avg Adjacent Reflection" },
   ];
 
   // Step machine
   // step 0: choose type (unless locked)
   // VNA: step 1 = folder, step 2 = file, step 3 = sparam
   // Pulse: step 1 = subfolder, step 2 = file, step 3 = channel
-  let plotType = $state<'vna' | 'pulse' | null>(lockedType);
+  let plotType = $state<"vna" | "pulse" | null>(lockedType);
   let step = $state(lockedType ? 1 : 0);
 
   // Selections
-  let folder = $state('');
-  let file = $state('');
-  let subfolder = $state('');
+  let folder = $state("");
+  let file = $state("");
+  let subfolder = $state("");
 
   // Multi-selections (step 3)
   let selectedSparams = $state(new Set<string>());
@@ -49,18 +49,22 @@
   let loading = $state(false);
 
   // If type is already locked, pre-fetch the folder/subfolder list immediately
-  if (lockedType === 'vna') {
+  if (lockedType === "vna") {
     loading = true;
-    fetch('/api/vna/folders').then(r => r.json()).then(data => {
-      folders = data;
-      loading = false;
-    });
-  } else if (lockedType === 'pulse') {
+    fetch("/api/vna/folders")
+      .then((r) => r.json())
+      .then((data) => {
+        folders = data;
+        loading = false;
+      });
+  } else if (lockedType === "pulse") {
     loading = true;
-    fetch('/api/pulse/subfolders').then(r => r.json()).then(data => {
-      subfolders = data;
-      loading = false;
-    });
+    fetch("/api/pulse/subfolders")
+      .then((r) => r.json())
+      .then((data) => {
+        subfolders = data;
+        loading = false;
+      });
   }
 
   function toggleSparam(s: string) {
@@ -75,13 +79,13 @@
     selectedChannels = next;
   }
 
-  async function chooseType(t: 'vna' | 'pulse') {
+  async function chooseType(t: "vna" | "pulse") {
     plotType = t;
     loading = true;
-    if (t === 'vna') {
-      folders = await fetch('/api/vna/folders').then(r => r.json());
+    if (t === "vna") {
+      folders = await fetch("/api/vna/folders").then((r) => r.json());
     } else {
-      subfolders = await fetch('/api/pulse/subfolders').then(r => r.json());
+      subfolders = await fetch("/api/pulse/subfolders").then((r) => r.json());
     }
     loading = false;
     step = 1;
@@ -90,7 +94,9 @@
   async function chooseFolder(f: string) {
     folder = f;
     loading = true;
-    files = await fetch(`/api/vna/files?folder=${encodeURIComponent(f)}`).then(r => r.json());
+    files = await fetch(`/api/vna/files?folder=${encodeURIComponent(f)}`).then(
+      (r) => r.json(),
+    );
     loading = false;
     step = 2;
   }
@@ -98,7 +104,9 @@
   async function chooseSubfolder(sf: string) {
     subfolder = sf;
     loading = true;
-    files = await fetch(`/api/pulse/files?subfolder=${encodeURIComponent(sf)}`).then(r => r.json());
+    files = await fetch(
+      `/api/pulse/files?subfolder=${encodeURIComponent(sf)}`,
+    ).then((r) => r.json());
     loading = false;
     step = 2;
   }
@@ -107,24 +115,24 @@
     file = f;
     selectedSparams = new Set();
     selectedChannels = new Set();
-    if (plotType === 'vna') {
+    if (plotType === "vna") {
       loading = true;
       sparams = await fetch(
-        `/api/vna/sparams?folder=${encodeURIComponent(folder)}&file=${encodeURIComponent(f)}`
-      ).then(r => r.json());
+        `/api/vna/sparams?folder=${encodeURIComponent(folder)}&file=${encodeURIComponent(f)}`,
+      ).then((r) => r.json());
       loading = false;
     }
     step = 3;
   }
 
   function confirm() {
-    if (plotType === 'vna') {
+    if (plotType === "vna") {
       for (const s of selectedSparams) {
-        dispatch('add', { type: 'vna', folder, file, sparam: s });
+        dispatch("add", { type: "vna", folder, file, sparam: s });
       }
     } else {
       for (const c of selectedChannels) {
-        dispatch('add', { type: 'pulse', subfolder, file, channel: c });
+        dispatch("add", { type: "pulse", subfolder, file, channel: c });
       }
     }
   }
@@ -137,7 +145,11 @@
 <!-- Modal overlay -->
 <div class="overlay" role="dialog" aria-modal="true">
   <div class="modal">
-    <button class="close-btn" onclick={() => dispatch('close')} aria-label="Close">✕</button>
+    <button
+      class="close-btn"
+      onclick={() => dispatch("close")}
+      aria-label="Close">✕</button
+    >
 
     <h2>Add Line</h2>
 
@@ -147,80 +159,112 @@
       <!-- Choose type -->
       <p class="prompt">What type of comparison?</p>
       <div class="choice-row">
-        <button class="choice-btn" onclick={() => chooseType('vna')}>VNA Comparison</button>
-        <button class="choice-btn" onclick={() => chooseType('pulse')}>Pulse Comparison</button>
+        <button class="choice-btn" onclick={() => chooseType("vna")}
+          >VNA Comparison</button
+        >
+        <button class="choice-btn" onclick={() => chooseType("pulse")}
+          >Pulse Comparison</button
+        >
       </div>
-
-    {:else if plotType === 'vna'}
+    {:else if plotType === "vna"}
       {#if step === 1}
         <p class="prompt">Select a folder:</p>
         <ul class="pick-list">
           {#each folders as f}
-            <li><button class="pick-btn" onclick={() => chooseFolder(f)}>{f}</button></li>
+            <li>
+              <button class="pick-btn" onclick={() => chooseFolder(f)}
+                >{f}</button
+              >
+            </li>
           {/each}
         </ul>
-
       {:else if step === 2}
         <p class="prompt">Folder: <strong>{folder}</strong> — Select a file:</p>
         <ul class="pick-list">
           {#each files as f}
-            <li><button class="pick-btn" onclick={() => chooseFile(f)}>{f}</button></li>
+            <li>
+              <button class="pick-btn" onclick={() => chooseFile(f)}>{f}</button
+              >
+            </li>
           {/each}
         </ul>
-
       {:else if step === 3}
-        <p class="prompt">File: <strong>{file}</strong> — Select S-parameters (multiple allowed):</p>
+        <p class="prompt">
+          File: <strong>{file}</strong> — Select S-parameters (multiple allowed):
+        </p>
         <ul class="pick-list sparam-grid">
           {#each sparams as s}
             <li>
               <button
                 class="pick-btn sparam-btn"
                 class:selected={selectedSparams.has(s)}
-                onclick={() => toggleSparam(s)}
-              >{s}</button>
+                onclick={() => toggleSparam(s)}>{s}</button
+              >
             </li>
           {/each}
         </ul>
         {#if selectedSparams.size > 0}
           <button class="confirm-btn" onclick={confirm}>
-            Add {selectedSparams.size} line{selectedSparams.size > 1 ? 's' : ''}
+            Add {selectedSparams.size} line{selectedSparams.size > 1 ? "s" : ""}
           </button>
         {/if}
       {/if}
-
-    {:else if plotType === 'pulse'}
+    {:else if plotType === "pulse"}
       {#if step === 1}
         <p class="prompt">Select a subfolder:</p>
-        <ul class="pick-list">
+        <ul class="pick-list subfolder-list">
           {#each subfolders as sf}
-            <li><button class="pick-btn" onclick={() => chooseSubfolder(sf)}>{sf}</button></li>
+            <li>
+              <button
+                class="pick-btn subfolder-btn"
+                onclick={() => chooseSubfolder(sf)}
+              >
+                <img
+                  src="/{sf}.png"
+                  alt={sf}
+                  class="subfolder-img"
+                  onerror={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display =
+                      "none";
+                  }}
+                />
+                <span>{sf}</span>
+              </button>
+            </li>
           {/each}
         </ul>
-
       {:else if step === 2}
-        <p class="prompt">Subfolder: <strong>{subfolder}</strong> — Select a file:</p>
+        <p class="prompt">
+          Subfolder: <strong>{subfolder}</strong> — Select a file:
+        </p>
         <ul class="pick-list">
           {#each files as f}
-            <li><button class="pick-btn" onclick={() => chooseFile(f)}>{f}</button></li>
+            <li>
+              <button class="pick-btn" onclick={() => chooseFile(f)}>{f}</button
+              >
+            </li>
           {/each}
         </ul>
-
       {:else if step === 3}
-        <p class="prompt">File: <strong>{file}</strong> — Select channels (multiple allowed):</p>
+        <p class="prompt">
+          File: <strong>{file}</strong> — Select channels (multiple allowed):
+        </p>
         <ul class="pick-list channel-grid">
           {#each CHANNEL_OPTIONS as opt}
             <li>
               <button
                 class="pick-btn"
                 class:selected={selectedChannels.has(opt.value)}
-                onclick={() => toggleChannel(opt.value)}
-              >{opt.label}</button>
+                onclick={() => toggleChannel(opt.value)}>{opt.label}</button
+              >
             </li>
           {/each}
         </ul>
         {#if selectedChannels.size > 0}
           <button class="confirm-btn" onclick={confirm}>
-            Add {selectedChannels.size} line{selectedChannels.size > 1 ? 's' : ''}
+            Add {selectedChannels.size} line{selectedChannels.size > 1
+              ? "s"
+              : ""}
           </button>
         {/if}
       {/if}
@@ -253,10 +297,14 @@
     max-height: 80vh;
     overflow-y: auto;
     position: relative;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
   }
 
-  h2 { margin: 0 0 1rem; font-size: 1.2rem; color: var(--text); }
+  h2 {
+    margin: 0 0 1rem;
+    font-size: 1.2rem;
+    color: var(--text);
+  }
 
   .close-btn {
     position: absolute;
@@ -269,12 +317,24 @@
     cursor: pointer;
     padding: 0.2rem 0.5rem;
   }
-  .close-btn:hover { color: var(--text); }
+  .close-btn:hover {
+    color: var(--text);
+  }
 
-  .prompt { margin: 0 0 0.8rem; color: var(--text-muted); font-size: 0.88rem; }
-  .hint { color: var(--text-muted); font-size: 0.88rem; }
+  .prompt {
+    margin: 0 0 0.8rem;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+  }
+  .hint {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+  }
 
-  .choice-row { display: flex; gap: 1rem; }
+  .choice-row {
+    display: flex;
+    gap: 1rem;
+  }
 
   .choice-btn {
     flex: 1;
@@ -287,7 +347,11 @@
     font-size: 0.92rem;
     transition: background 0.12s;
   }
-  .choice-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .choice-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
 
   .pick-list {
     list-style: none;
@@ -310,6 +374,25 @@
     gap: 0.4rem;
   }
 
+  .subfolder-list {
+    gap: 0.6rem;
+  }
+
+  .subfolder-btn {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.6rem 0.9rem;
+    text-align: left;
+  }
+
+  .subfolder-img {
+    width: 190px;
+    flex-shrink: 0;
+    border-radius: 4px;
+    display: block;
+  }
+
   .pick-btn {
     width: 100%;
     padding: 0.45rem 0.75rem;
@@ -322,10 +405,19 @@
     font-size: 0.83rem;
     transition: background 0.1s;
   }
-  .pick-btn:hover { filter: brightness(0.93); border-color: var(--accent); }
+  .pick-btn:hover {
+    filter: brightness(0.93);
+    border-color: var(--accent);
+  }
 
-  .sparam-btn { text-align: center; }
-  .pick-btn.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .sparam-btn {
+    text-align: center;
+  }
+  .pick-btn.selected {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
 
   .confirm-btn {
     margin-top: 1rem;
@@ -338,7 +430,9 @@
     font-size: 0.92rem;
     font-weight: 600;
   }
-  .confirm-btn:hover { background: var(--accent-h); }
+  .confirm-btn:hover {
+    background: var(--accent-h);
+  }
 
   .back-btn {
     margin-top: 0.8rem;
@@ -349,5 +443,7 @@
     font-size: 0.83rem;
     padding: 0;
   }
-  .back-btn:hover { color: var(--text); }
+  .back-btn:hover {
+    color: var(--text);
+  }
 </style>
