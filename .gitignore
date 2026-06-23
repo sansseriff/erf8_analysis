@@ -20,3 +20,5 @@ data/
 
 # Frontend deps
 src_web/cable_analysis/node_modules/
+
+DEPLOY_SKYNET.md
