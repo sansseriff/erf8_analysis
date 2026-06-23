@@ -36,6 +36,35 @@
   let measureResult = $state<{ db: number; max_a: number; max_b: number } | null>(null);
   let measureError = $state<string | null>(null);
 
+  // Axis range (strings so we can tell empty-vs-zero; parsed at send time)
+  let xMin = $state('');
+  let xMax = $state('');
+  let yMin = $state('');
+  let yMax = $state('');
+
+  function parseRange(s: string): number | null {
+    const t = s.trim();
+    if (t === '') return null;
+    const v = parseFloat(t);
+    return Number.isFinite(v) ? v : null;
+  }
+
+  function rangePayload() {
+    return {
+      x_min: parseRange(xMin),
+      x_max: parseRange(xMax),
+      y_min: parseRange(yMin),
+      y_max: parseRange(yMax),
+    };
+  }
+
+  function resetRange() {
+    xMin = '';
+    xMax = '';
+    yMin = '';
+    yMax = '';
+  }
+
   function lineLabel(l: LineSpec): string {
     if (l.type === 'vna') return `${l.folder} / ${l.file} — ${l.sparam}`;
     const ch = CHANNEL_LABELS[l.channel] ?? l.channel;
@@ -76,7 +105,7 @@
       const res = await fetch('/api/plot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: plotType, lines }),
+        body: JSON.stringify({ type: plotType, lines, ...rangePayload() }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
@@ -100,7 +129,7 @@
       const res = await fetch('/api/measure', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: plotType, lines, measure_a: measureA, measure_b: measureB }),
+        body: JSON.stringify({ type: plotType, lines, measure_a: measureA, measure_b: measureB, ...rangePayload() }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
@@ -172,6 +201,36 @@
   {/if}
 
   {#if plotImageUrl}
+    <section class="range-section">
+      <h2>Axis Range</h2>
+      <div class="range-row">
+        <label class="range-field">
+          <span>X min</span>
+          <input type="text" inputmode="decimal" bind:value={xMin} placeholder="auto" />
+        </label>
+        <label class="range-field">
+          <span>X max</span>
+          <input type="text" inputmode="decimal" bind:value={xMax} placeholder="auto" />
+        </label>
+        <label class="range-field">
+          <span>Y min</span>
+          <input type="text" inputmode="decimal" bind:value={yMin} placeholder="auto" />
+        </label>
+        <label class="range-field">
+          <span>Y max</span>
+          <input type="text" inputmode="decimal" bind:value={yMax} placeholder="auto" />
+        </label>
+        <button class="btn primary" onclick={plot} disabled={isPlotting}>
+          {isPlotting ? 'Replotting…' : 'Replot'}
+        </button>
+        <button class="btn" onclick={resetRange} disabled={isPlotting}>Reset</button>
+      </div>
+      <p class="range-hint">
+        Leave blank for auto.
+        {#if plotType === 'pulse'}X in ns, Y in V.{:else}X in MHz, Y in dB.{/if}
+      </p>
+    </section>
+
     <section class="plot-section">
       <img src={plotImageUrl} alt="Matplotlib plot" class="plot-img" />
     </section>
@@ -378,6 +437,45 @@
     padding: 0.55rem 0.9rem;
     font-size: 0.83rem;
     margin-bottom: 1rem;
+  }
+
+  /* ---- Range ---- */
+  .range-section {
+    margin-top: 1.5rem;
+    padding: 1rem 1.2rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .range-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .range-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+  .range-field input {
+    width: 110px;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid var(--btn-border);
+    border-radius: 6px;
+    background: var(--btn-bg);
+    color: var(--text);
+    font-size: 0.85rem;
+  }
+
+  .range-hint {
+    margin-top: 0.55rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
   }
 
   /* ---- Plot ---- */

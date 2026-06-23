@@ -144,6 +144,10 @@ class PulseLine(BaseModel):
 class PlotRequest(BaseModel):
     type: str  # "vna" or "pulse"
     lines: list[dict]
+    x_min: float | None = None
+    x_max: float | None = None
+    y_min: float | None = None
+    y_max: float | None = None
 
 
 class MeasureRequest(BaseModel):
@@ -151,6 +155,10 @@ class MeasureRequest(BaseModel):
     lines: list[dict]
     measure_a: int  # index into lines
     measure_b: int
+    x_min: float | None = None
+    x_max: float | None = None
+    y_min: float | None = None
+    y_max: float | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -162,7 +170,9 @@ class MeasureRequest(BaseModel):
 def plot(req: PlotRequest):
     if req.type not in ("vna", "pulse"):
         raise HTTPException(status_code=400, detail="type must be 'vna' or 'pulse'")
-    fig, _ax, _pulse_data = _build_figure(req.type, req.lines)
+    fig, _ax, _pulse_data = _build_figure(
+        req.type, req.lines, req.x_min, req.x_max, req.y_min, req.y_max
+    )
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=150)
     plt.close(fig)
@@ -185,28 +195,30 @@ def measure(req: MeasureRequest):
     if req.measure_a >= n or req.measure_b >= n:
         raise HTTPException(status_code=400, detail="Line index out of range")
 
-    fig, ax, pulse_data = _build_figure(req.type, req.lines)
+    fig, ax, pulse_data = _build_figure(
+        req.type, req.lines, req.x_min, req.x_max, req.y_min, req.y_max
+    )
 
     amp_a = pulse_data[req.measure_a]
     amp_b = pulse_data[req.measure_b]
 
-    max_a = float(np.max(np.abs(amp_a)))
-    max_b = float(np.max(np.abs(amp_b)))
+    peak_a = float(amp_a[np.argmax(np.abs(amp_a))])
+    peak_b = float(amp_b[np.argmax(np.abs(amp_b))])
 
-    if max_b == 0:
+    if peak_b == 0:
         raise HTTPException(
             status_code=422, detail="Line B has zero amplitude — cannot compute ratio"
         )
 
-    ratio = max_a / max_b
-    db = 20.0 * np.log10(ratio) if ratio > 0 else float("-inf")
+    ratio = abs(peak_a) / abs(peak_b)
+    db = float(20.0 * np.log10(ratio)) if ratio > 0 else float("-inf")
 
-    # Draw horizontal lines at the max absolute values, matching line colors
+    # Draw horizontal lines at the signed peaks, matching line colors
     color_a = PALETTE[req.measure_a % len(PALETTE)]
     color_b = PALETTE[req.measure_b % len(PALETTE)]
 
-    ax.axhline(max_a, color=color_a, linestyle="--", linewidth=1.2, alpha=0.8)
-    ax.axhline(max_b, color=color_b, linestyle="--", linewidth=1.2, alpha=0.8)
+    ax.axhline(peak_a, color=color_a, linestyle="--", linewidth=1.2, alpha=0.8)
+    ax.axhline(peak_b, color=color_b, linestyle="--", linewidth=1.2, alpha=0.8)
     fig.tight_layout()
 
     buf = io.BytesIO()
@@ -215,7 +227,7 @@ def measure(req: MeasureRequest):
     buf.seek(0)
     image_b64 = base64.b64encode(buf.read()).decode()
 
-    return {"db": db, "max_a": max_a, "max_b": max_b, "image": image_b64}
+    return {"db": db, "max_a": peak_a, "max_b": peak_b, "image": image_b64}
 
 
 # ---------------------------------------------------------------------------
@@ -224,7 +236,12 @@ def measure(req: MeasureRequest):
 
 
 def _build_figure(
-    req_type: str, lines_dicts: list[dict]
+    req_type: str,
+    lines_dicts: list[dict],
+    x_min: float | None = None,
+    x_max: float | None = None,
+    y_min: float | None = None,
+    y_max: float | None = None,
 ) -> tuple[plt.Figure, plt.Axes, list[np.ndarray]]:
     """Build the matplotlib figure. Returns (fig, ax, amp_arrays) where amp_arrays
     contains the amplitude array for each pulse line (empty list for VNA)."""
@@ -251,7 +268,7 @@ def _build_figure(
             mag_db = 20 * np.log10(mag.clip(lower=1e-12))
             ax.plot(freq_mhz[mask], mag_db, color=PALETTE[i % len(PALETTE)])
     else:
-        ax.set_xlabel("Time (s)")
+        ax.set_xlabel("Time (ns)")
         ax.set_ylabel("Amplitude (V)")
         ax.set_title("Pulse Comparison")
         for i, line_dict in enumerate(lines_dicts):
@@ -261,12 +278,16 @@ def _build_figure(
             time_num = pd.to_numeric(df.iloc[:, 0], errors="coerce")
             amp_num = pd.to_numeric(df.iloc[:, col_idx], errors="coerce")
             mask = time_num.notna() & amp_num.notna()
-            t = time_num[mask].values
-            a = amp_num[mask].values
+            t = np.asarray(time_num[mask].values, dtype=float) * 1e9
+            a = np.asarray(amp_num[mask].values, dtype=float)
             ax.plot(t, a, color=PALETTE[i % len(PALETTE)])
             amp_arrays.append(a)
 
     ax.grid(True, alpha=0.3)
+    if x_min is not None or x_max is not None:
+        ax.set_xlim(left=x_min, right=x_max)
+    if y_min is not None or y_max is not None:
+        ax.set_ylim(bottom=y_min, top=y_max)
     fig.tight_layout()
     return fig, ax, amp_arrays
 

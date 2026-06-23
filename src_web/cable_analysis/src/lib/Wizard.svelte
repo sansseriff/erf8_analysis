@@ -13,6 +13,27 @@
     | { type: "vna"; folder: string; file: string; sparam: string }
     | { type: "pulse"; subfolder: string; file: string; channel: string };
 
+  type SubfolderChoice = { label: string; path: string; image: string };
+  type SubfolderGroup = { label: string; children: SubfolderChoice[] };
+
+  const STATIC_PULSE_GROUPS: SubfolderGroup[] = [
+    {
+      label: "Nearest, Next Nearest",
+      children: [
+        {
+          label: "Nearest",
+          path: "nearest_vs_next_nearest/Pulse_ch1_in1__ch2_out1__ch3_out3__ch4_in3",
+          image: "nearest.png",
+        },
+        {
+          label: "Next Nearest",
+          path: "nearest_vs_next_nearest/Pulse_ch1_in1__ch2_out1__ch3_out5__ch4_in5",
+          image: "next_nearest.png",
+        },
+      ],
+    },
+  ];
+
   const CHANNEL_OPTIONS = [
     { value: "C1", label: "C1 — Raw Original" },
     { value: "C2", label: "C2 — Raw Transmission" },
@@ -35,6 +56,7 @@
   let folder = $state("");
   let file = $state("");
   let subfolder = $state("");
+  let activeGroup = $state<SubfolderGroup | null>(null);
 
   // Multi-selections (step 3)
   let selectedSparams = $state(new Set<string>());
@@ -138,6 +160,10 @@
   }
 
   function back() {
+    if (activeGroup && step === 1) {
+      activeGroup = null;
+      return;
+    }
     if (step > (lockedType ? 1 : 0)) step--;
   }
 </script>
@@ -211,28 +237,65 @@
       {/if}
     {:else if plotType === "pulse"}
       {#if step === 1}
-        <p class="prompt">Select a subfolder:</p>
-        <ul class="pick-list subfolder-list">
-          {#each subfolders as sf}
-            <li>
-              <button
-                class="pick-btn subfolder-btn"
-                onclick={() => chooseSubfolder(sf)}
-              >
-                <img
-                  src="/{sf}.png"
-                  alt={sf}
-                  class="subfolder-img"
-                  onerror={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.display =
-                      "none";
-                  }}
-                />
-                <span>{sf}</span>
-              </button>
-            </li>
-          {/each}
-        </ul>
+        {#if activeGroup}
+          <p class="prompt">
+            Group: <strong>{activeGroup.label}</strong> — Select a cable configuration:
+          </p>
+          <ul class="pick-list subfolder-list">
+            {#each activeGroup.children as child}
+              <li>
+                <button
+                  class="pick-btn subfolder-btn"
+                  onclick={() => chooseSubfolder(child.path)}
+                >
+                  <img
+                    src="/{child.image}"
+                    alt={child.label}
+                    class="subfolder-img"
+                    onerror={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display =
+                        "none";
+                    }}
+                  />
+                  <span>{child.label}</span>
+                </button>
+              </li>
+            {/each}
+          </ul>
+        {:else}
+          <p class="prompt">Select a subfolder:</p>
+          <ul class="pick-list subfolder-list">
+            {#each subfolders as sf}
+              <li>
+                <button
+                  class="pick-btn subfolder-btn"
+                  onclick={() => chooseSubfolder(sf)}
+                >
+                  <img
+                    src="/{sf}.png"
+                    alt={sf}
+                    class="subfolder-img"
+                    onerror={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display =
+                        "none";
+                    }}
+                  />
+                  <span>{sf}</span>
+                </button>
+              </li>
+            {/each}
+            {#each STATIC_PULSE_GROUPS as group}
+              <li>
+                <button
+                  class="pick-btn subfolder-btn group-btn"
+                  onclick={() => (activeGroup = group)}
+                >
+                  <span>{group.label} →</span>
+                </button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
       {:else if step === 2}
         <p class="prompt">
           Subfolder: <strong>{subfolder}</strong> — Select a file:
@@ -270,7 +333,7 @@
       {/if}
     {/if}
 
-    {#if step > (lockedType ? 1 : 0) && !loading}
+    {#if (step > (lockedType ? 1 : 0) || activeGroup) && !loading}
       <button class="back-btn" onclick={back}>← Back</button>
     {/if}
   </div>
@@ -391,6 +454,11 @@
     flex-shrink: 0;
     border-radius: 4px;
     display: block;
+  }
+
+  .group-btn {
+    font-weight: 600;
+    min-height: 3rem;
   }
 
   .pick-btn {
